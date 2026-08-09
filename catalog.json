@@ -71,6 +71,30 @@
       "showBottom": true,
       "showLeft": true,
       "showRight": true
+    },
+    {
+      "author": "obamah752-bit",
+      "description": "Optional description",
+      "totalDownloads": 0,
+      "weeklyDownloads": 0,
+      "publishedAt": "2026-08-09T23:49:11.352Z",
+      "name": "fucking wheel idk",
+      "color": "#FF3AC5C5",
+      "armLength": 12.421428571428573,
+      "thickness": 1.7714285714285691,
+      "gap": 6.571428571428574,
+      "showDot": true,
+      "dotSize": 1.7107142857142852,
+      "dotOpacity": 0.7267857142857141,
+      "showCircle": true,
+      "circleRadius": 22.000000000000004,
+      "circleOpacity": 0.1,
+      "showOutline": false,
+      "opacity": 1,
+      "showTop": true,
+      "showBottom": true,
+      "showLeft": true,
+      "showRight": true
     }
   ]
 }
