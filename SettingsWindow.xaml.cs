@@ -11,6 +11,9 @@ using System.Net.Http;
 using System.Diagnostics;
 using System.Text;
 using System.Linq;
+using System.Windows.Media.Animation;
+using PreviewEllipse = System.Windows.Shapes.Ellipse;
+using PreviewLine = System.Windows.Shapes.Line;
 
 namespace crosshair_y
 {
@@ -26,6 +29,7 @@ namespace crosshair_y
         private const string CommunityRepository = "obamah752-bit/Crosshair_y";
         private const string CommunityCatalogUrl = "https://raw.githubusercontent.com/obamah752-bit/Crosshair_y/main/catalog.json";
         private string _communitySort = "Top";
+        private bool _browseLayoutExpanded;
 
         private static readonly JsonSerializerOptions JsonOptions = new()
         {
@@ -81,6 +85,7 @@ namespace crosshair_y
 
         private void SettingsTab_Click(object sender, RoutedEventArgs e)
         {
+            SetBrowseLayoutExpanded(false);
             SettingsPanel.Visibility = Visibility.Visible;
             SavedPanel.Visibility = Visibility.Collapsed;
             CommunityPanel.Visibility = Visibility.Collapsed;
@@ -91,16 +96,19 @@ namespace crosshair_y
 
         private void SavedTab_Click(object sender, RoutedEventArgs e)
         {
+            SetBrowseLayoutExpanded(true);
             SettingsPanel.Visibility = Visibility.Collapsed;
             SavedPanel.Visibility = Visibility.Visible;
             CommunityPanel.Visibility = Visibility.Collapsed;
             SavedTabButton.Background = new SolidColorBrush(Color.FromRgb(0x4C, 0x3A, 0x68));
             SettingsTabButton.Background = Brushes.Transparent;
             CommunityTabButton.Background = Brushes.Transparent;
+            ShowPresetPreview(_presets.FirstOrDefault() ?? _overlay.Settings.ToPreset("Current setup"));
         }
 
         private async void CommunityTab_Click(object sender, RoutedEventArgs e)
         {
+            SetBrowseLayoutExpanded(true);
             SettingsPanel.Visibility = Visibility.Collapsed;
             SavedPanel.Visibility = Visibility.Collapsed;
             CommunityPanel.Visibility = Visibility.Visible;
@@ -165,10 +173,12 @@ namespace crosshair_y
                 ? $"Crosshair {_presets.Count + 1}"
                 : PresetNameBox.Text.Trim();
 
-            _presets.Add(_overlay.Settings.ToPreset(name));
+            var savedPreset = _overlay.Settings.ToPreset(name);
+            _presets.Add(savedPreset);
             PresetNameBox.Text = "";
             SavePresets();
             RefreshSavedList();
+            ShowPresetPreview(savedPreset);
         }
 
         private void RefreshSavedList()
@@ -210,7 +220,12 @@ namespace crosshair_y
                     Foreground = Brushes.White,
                     BorderThickness = new Thickness(0)
                 };
-                loadButton.Click += (s, e) => { _overlay.Settings.ApplyPreset(preset); SyncControlsToSettings(); };
+                loadButton.Click += (s, e) =>
+                {
+                    _overlay.Settings.ApplyPreset(preset);
+                    SyncControlsToSettings();
+                    ShowPresetPreview(preset);
+                };
                 Grid.SetColumn(loadButton, 1);
 
                 var deleteButton = new Button
@@ -232,6 +247,7 @@ namespace crosshair_y
                 row.Children.Add(nameText);
                 row.Children.Add(loadButton);
                 row.Children.Add(deleteButton);
+                row.MouseEnter += (s, e) => ShowPresetPreview(preset);
                 SavedListPanel.Children.Add(row);
             }
         }
@@ -356,12 +372,12 @@ namespace crosshair_y
                 return;
             }
 
-            IEnumerable<CommunityCrosshairPreset> sorted = _communitySort switch
+            List<CommunityCrosshairPreset> sorted = (_communitySort switch
             {
                 "Week" => _communityPresets.OrderByDescending(p => p.WeeklyDownloads).ThenByDescending(p => p.TotalDownloads),
                 "New" => _communityPresets.OrderByDescending(p => p.PublishedAt),
                 _ => _communityPresets.OrderByDescending(p => p.TotalDownloads).ThenByDescending(GetLocalUseCount).ThenByDescending(p => p.PublishedAt)
-            };
+            }).ToList();
 
             foreach (var preset in sorted)
             {
@@ -389,13 +405,133 @@ namespace crosshair_y
                     _communityUses[GetCommunityKey(preset)] = GetLocalUseCount(preset) + 1;
                     SaveCommunityUses();
                     SyncControlsToSettings();
+                    ShowPresetPreview(preset);
                     CommunityStatusText.Text = $"Now using {preset.Name}.";
                     RefreshCommunityList();
                 };
                 Grid.SetColumn(apply, 1);
                 row.Children.Add(text);
                 row.Children.Add(apply);
+                row.MouseEnter += (s, e) => ShowPresetPreview(preset);
                 CommunityListPanel.Children.Add(row);
+            }
+
+            if (_browseLayoutExpanded && sorted.Count > 0)
+                ShowPresetPreview(sorted[0]);
+        }
+
+        private void SetBrowseLayoutExpanded(bool expanded)
+        {
+            if (_browseLayoutExpanded == expanded) return;
+
+            _browseLayoutExpanded = expanded;
+            var duration = new Duration(TimeSpan.FromMilliseconds(180));
+            BeginAnimation(WidthProperty, new DoubleAnimation
+            {
+                To = expanded ? 840 : 540,
+                Duration = duration,
+                EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
+            });
+
+            if (expanded)
+            {
+                PreviewGapColumn.Width = new GridLength(12);
+                PreviewColumn.Width = new GridLength(248);
+                PresetPreviewPanel.Visibility = Visibility.Visible;
+                PresetPreviewPanel.Opacity = 0;
+                PresetPreviewPanel.BeginAnimation(OpacityProperty, new DoubleAnimation(0, 1, duration));
+            }
+            else
+            {
+                PresetPreviewPanel.BeginAnimation(OpacityProperty, null);
+                PresetPreviewPanel.Visibility = Visibility.Collapsed;
+                PreviewGapColumn.Width = new GridLength(0);
+                PreviewColumn.Width = new GridLength(0);
+            }
+        }
+
+        private void ShowPresetPreview(CrosshairPreset preset)
+        {
+            PreviewNameText.Text = preset.Name;
+            PreviewDetailsText.Text = preset is CommunityCrosshairPreset community
+                ? $"By {community.Author}\n{community.Description}\n\n{community.TotalDownloads:N0} downloads · {community.WeeklyDownloads:N0} this week"
+                : "Saved on this PC";
+
+            CrosshairPreviewCanvas.Children.Clear();
+            const double center = 109;
+            double extent = Math.Max(preset.Gap + preset.ArmLength,
+                Math.Max(preset.ShowCircle ? preset.CircleRadius + preset.Thickness : 0,
+                         preset.ShowDot ? preset.DotSize + 1 : 0));
+            double scale = Math.Clamp(82 / Math.Max(extent, 1), 0.8, 9);
+            double lineThickness = Math.Max(1, preset.Thickness * scale);
+            var lineBrush = new SolidColorBrush(preset.Color) { Opacity = preset.Opacity };
+            var outlineBrush = new SolidColorBrush(Colors.Black) { Opacity = preset.Opacity };
+
+            void AddLine(double x1, double y1, double x2, double y2)
+            {
+                if (preset.ShowOutline)
+                {
+                    CrosshairPreviewCanvas.Children.Add(new PreviewLine
+                    {
+                        X1 = x1, Y1 = y1, X2 = x2, Y2 = y2,
+                        Stroke = outlineBrush, StrokeThickness = lineThickness + 3,
+                        StrokeStartLineCap = PenLineCap.Square, StrokeEndLineCap = PenLineCap.Square
+                    });
+                }
+                CrosshairPreviewCanvas.Children.Add(new PreviewLine
+                {
+                    X1 = x1, Y1 = y1, X2 = x2, Y2 = y2,
+                    Stroke = lineBrush, StrokeThickness = lineThickness,
+                    StrokeStartLineCap = PenLineCap.Square, StrokeEndLineCap = PenLineCap.Square
+                });
+            }
+
+            double gap = preset.Gap * scale;
+            double arm = preset.ArmLength * scale;
+            if (preset.ShowTop) AddLine(center, center - gap - arm, center, center - gap);
+            if (preset.ShowBottom) AddLine(center, center + gap, center, center + gap + arm);
+            if (preset.ShowLeft) AddLine(center - gap - arm, center, center - gap, center);
+            if (preset.ShowRight) AddLine(center + gap, center, center + gap + arm, center);
+
+            if (preset.ShowCircle)
+            {
+                double radius = preset.CircleRadius * scale;
+                var circle = new PreviewEllipse
+                {
+                    Width = radius * 2, Height = radius * 2,
+                    Stroke = lineBrush, StrokeThickness = lineThickness * 0.75
+                };
+                if (preset.ShowOutline)
+                {
+                    var outline = new PreviewEllipse
+                    {
+                        Width = circle.Width + 3, Height = circle.Height + 3,
+                        Stroke = outlineBrush, StrokeThickness = lineThickness * 0.75 + 3
+                    };
+                    Canvas.SetLeft(outline, center - outline.Width / 2);
+                    Canvas.SetTop(outline, center - outline.Height / 2);
+                    CrosshairPreviewCanvas.Children.Add(outline);
+                }
+                Canvas.SetLeft(circle, center - radius);
+                Canvas.SetTop(circle, center - radius);
+                CrosshairPreviewCanvas.Children.Add(circle);
+            }
+
+            if (preset.ShowDot)
+            {
+                double radius = preset.DotSize * scale;
+                var dotBrush = new SolidColorBrush(preset.Color) { Opacity = preset.Opacity * preset.DotOpacity };
+                if (preset.ShowOutline)
+                {
+                    var outline = new PreviewEllipse { Width = radius * 2 + 4, Height = radius * 2 + 4, Fill = outlineBrush };
+                    Canvas.SetLeft(outline, center - outline.Width / 2);
+                    Canvas.SetTop(outline, center - outline.Height / 2);
+                    CrosshairPreviewCanvas.Children.Add(outline);
+                }
+                var dot = new PreviewEllipse { Width = radius * 2, Height = radius * 2, Fill = dotBrush };
+                Canvas.SetLeft(dot, center - radius);
+                Canvas.SetTop(dot, center - radius);
+                CrosshairPreviewCanvas.Children.Add(dot);
             }
         }
 
