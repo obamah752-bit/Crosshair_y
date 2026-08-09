@@ -108,8 +108,9 @@ namespace crosshair_y
             SettingsTabButton.Background = Brushes.Transparent;
             SavedTabButton.Background = Brushes.Transparent;
 
-            if (_communityPresets.Count == 0)
-                await RefreshCommunityAsync();
+            // Always check the GitHub catalog when the tab opens so a user sees
+            // newly approved community crosshairs without having to press Refresh.
+            await RefreshCommunityAsync();
         }
 
         private void ColorButton_Click(object sender, RoutedEventArgs e)
@@ -319,7 +320,10 @@ namespace crosshair_y
             try
             {
                 // The catalog is a normal static file hosted by GitHub; no backend is involved.
-                using var response = await CommunityHttpClient.GetAsync(CommunityCatalogUrl);
+                // Raw GitHub responses can be cached for several minutes. A changing
+                // query value ensures Refresh shows a newly published preset at once.
+                string catalogUrl = $"{CommunityCatalogUrl}?v={DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}";
+                using var response = await CommunityHttpClient.GetAsync(catalogUrl);
                 response.EnsureSuccessStatusCode();
                 string json = await response.Content.ReadAsStringAsync();
                 var catalog = JsonSerializer.Deserialize<CommunityCatalog>(json, JsonOptions);
