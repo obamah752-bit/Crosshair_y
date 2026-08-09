@@ -47,6 +47,30 @@
       "showBottom": false,
       "showLeft": false,
       "showRight": false
+    },
+    {
+      "author": "obamah752-bit",
+      "description": "Optional description",
+      "totalDownloads": 0,
+      "weeklyDownloads": 0,
+      "publishedAt": "2026-08-09T23:43:53.303Z",
+      "name": "main blue",
+      "color": "#FF00FFFF",
+      "armLength": 5,
+      "thickness": 2,
+      "gap": 4,
+      "showDot": false,
+      "dotSize": 3,
+      "dotOpacity": 1,
+      "showCircle": false,
+      "circleRadius": 15,
+      "circleOpacity": 1,
+      "showOutline": true,
+      "opacity": 1,
+      "showTop": true,
+      "showBottom": true,
+      "showLeft": true,
+      "showRight": true
     }
   ]
 }
