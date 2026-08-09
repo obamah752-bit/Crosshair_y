@@ -1,0 +1,52 @@
+{
+  "crosshairs": [
+    {
+      "name": "Classic Lime",
+      "author": "Crosshair Y",
+      "description": "The clean, high-visibility default.",
+      "totalDownloads": 0,
+      "weeklyDownloads": 0,
+      "publishedAt": "2026-08-09T00:00:00+00:00",
+      "color": "#FF00FF00",
+      "armLength": 5,
+      "thickness": 2,
+      "gap": 4,
+      "showDot": false,
+      "dotSize": 3,
+      "dotOpacity": 1,
+      "showCircle": false,
+      "circleRadius": 15,
+      "circleOpacity": 1,
+      "showOutline": true,
+      "opacity": 1,
+      "showTop": true,
+      "showBottom": true,
+      "showLeft": true,
+      "showRight": true
+    },
+    {
+      "name": "Precision Dot",
+      "author": "Crosshair Y",
+      "description": "A small cyan dot for uncluttered aiming.",
+      "totalDownloads": 0,
+      "weeklyDownloads": 0,
+      "publishedAt": "2026-08-09T00:00:00+00:00",
+      "color": "#FF00FFFF",
+      "armLength": 5,
+      "thickness": 2,
+      "gap": 4,
+      "showDot": true,
+      "dotSize": 2,
+      "dotOpacity": 1,
+      "showCircle": false,
+      "circleRadius": 15,
+      "circleOpacity": 1,
+      "showOutline": true,
+      "opacity": 1,
+      "showTop": false,
+      "showBottom": false,
+      "showLeft": false,
+      "showRight": false
+    }
+  ]
+}

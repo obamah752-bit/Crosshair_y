@@ -1,0 +1,114 @@
+name: Publish community crosshair
+
+on:
+  issues:
+    types: [opened]
+
+# This workflow only writes the catalog after strict validation. The GitHub token
+# belongs to the repository, so the desktop app never stores a write token.
+permissions:
+  contents: write
+  issues: write
+
+jobs:
+  publish:
+    if: startsWith(github.event.issue.title, 'Community crosshair:')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the catalog
+        uses: actions/checkout@v4
+
+      - name: Validate and add submission
+        env:
+          ISSUE_EVENT_PATH: ${{ github.event_path }}
+        run: |
+          node <<'NODE'
+          const fs = require('fs');
+
+          const event = JSON.parse(fs.readFileSync(process.env.ISSUE_EVENT_PATH, 'utf8'));
+          const issue = event.issue;
+          const match = (issue.body || '').match(/```json\s*([\s\S]*?)\s*```/i);
+          if (!match) throw new Error('The issue does not contain a JSON preset.');
+
+          let preset;
+          try {
+            preset = JSON.parse(match[1]);
+          } catch {
+            throw new Error('The submitted preset is not valid JSON.');
+          }
+
+          const number = (value, minimum, maximum, name) => {
+            if (typeof value !== 'number' || !Number.isFinite(value) || value < minimum || value > maximum) {
+              throw new Error(`${name} must be a number from ${minimum} to ${maximum}.`);
+            }
+          };
+          const boolean = (value, name) => {
+            if (typeof value !== 'boolean') throw new Error(`${name} must be true or false.`);
+          };
+
+          if (typeof preset.name !== 'string' || !preset.name.trim() || preset.name.length > 48) {
+            throw new Error('name must be 1 to 48 characters.');
+          }
+          if (typeof preset.description !== 'string' || preset.description.length > 180) {
+            throw new Error('description must be at most 180 characters.');
+          }
+          if (typeof preset.color !== 'string' || !/^#[0-9a-fA-F]{8}$/.test(preset.color)) {
+            throw new Error('color must be an 8-digit ARGB hex colour, for example #FF00FF00.');
+          }
+
+          number(preset.armLength, 2, 40, 'armLength');
+          number(preset.thickness, 1, 10, 'thickness');
+          number(preset.gap, 0, 30, 'gap');
+          number(preset.dotSize, 1, 20, 'dotSize');
+          number(preset.dotOpacity, 0.1, 1, 'dotOpacity');
+          number(preset.circleRadius, 2, 100, 'circleRadius');
+          number(preset.circleOpacity, 0.1, 1, 'circleOpacity');
+          number(preset.opacity, 0.1, 1, 'opacity');
+          ['showDot', 'showCircle', 'showOutline', 'showTop', 'showBottom', 'showLeft', 'showRight']
+            .forEach((key) => boolean(preset[key], key));
+
+          const catalogPath = 'catalog.json';
+          const catalog = JSON.parse(fs.readFileSync(catalogPath, 'utf8'));
+          if (!Array.isArray(catalog.crosshairs)) throw new Error('catalog.json has no crosshairs array.');
+          if (catalog.crosshairs.some(item => item.name.toLowerCase() === preset.name.trim().toLowerCase())) {
+            throw new Error('A community crosshair already uses this name.');
+          }
+
+          // Never trust ranking or author data submitted by a client.
+          preset.name = preset.name.trim();
+          preset.author = issue.user.login;
+          preset.description = preset.description.trim();
+          preset.totalDownloads = 0;
+          preset.weeklyDownloads = 0;
+          preset.publishedAt = new Date().toISOString();
+          catalog.crosshairs.push(preset);
+          fs.writeFileSync(catalogPath, JSON.stringify(catalog, null, 2) + '\n');
+          NODE
+
+      - name: Commit the published crosshair
+        env:
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          ISSUE_AUTHOR: ${{ github.event.issue.user.login }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add catalog.json
+          git commit -m "Add community crosshair from #${ISSUE_NUMBER}"
+          git push
+
+      - name: Confirm publication and close the submission
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: 'Your crosshair was validated and added to the community catalog. It will appear in the app after its next refresh.'
+            });
+            await github.rest.issues.update({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              state: 'closed'
+            });

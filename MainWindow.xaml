@@ -1,0 +1,12 @@
+﻿<Window x:Class="crosshair_y.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Crosshair Y"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        ResizeMode="NoResize"
+        Topmost="True"
+        ShowInTaskbar="False">
+    <Canvas x:Name="CrosshairCanvas"/>
+</Window>
