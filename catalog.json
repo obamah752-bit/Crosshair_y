@@ -95,6 +95,30 @@
       "showBottom": true,
       "showLeft": true,
       "showRight": true
+    },
+    {
+      "author": "obamah752-bit",
+      "description": "Optional description",
+      "totalDownloads": 0,
+      "weeklyDownloads": 0,
+      "publishedAt": "2026-08-10T00:13:48.852Z",
+      "name": "pump",
+      "color": "#FFFF0000",
+      "armLength": 10.921428571428573,
+      "thickness": 2.482142857142857,
+      "gap": 13.321428571428577,
+      "showDot": true,
+      "dotSize": 2,
+      "dotOpacity": 0.47892857142857154,
+      "showCircle": true,
+      "circleRadius": 25.849999999999998,
+      "circleOpacity": 1,
+      "showOutline": false,
+      "opacity": 1,
+      "showTop": true,
+      "showBottom": true,
+      "showLeft": true,
+      "showRight": true
     }
   ]
 }
