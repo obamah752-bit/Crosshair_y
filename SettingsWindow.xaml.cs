@@ -103,7 +103,6 @@ namespace crosshair_y
             SavedTabButton.Background = new SolidColorBrush(Color.FromRgb(0x4C, 0x3A, 0x68));
             SettingsTabButton.Background = Brushes.Transparent;
             CommunityTabButton.Background = Brushes.Transparent;
-            ShowPresetPreview(_presets.FirstOrDefault() ?? _overlay.Settings.ToPreset("Current setup"));
         }
 
         private async void CommunityTab_Click(object sender, RoutedEventArgs e)
@@ -178,7 +177,6 @@ namespace crosshair_y
             PresetNameBox.Text = "";
             SavePresets();
             RefreshSavedList();
-            ShowPresetPreview(savedPreset);
         }
 
         private void RefreshSavedList()
@@ -198,57 +196,19 @@ namespace crosshair_y
 
             foreach (var preset in _presets)
             {
-                var row = new Grid { Margin = new Thickness(0, 0, 0, 8) };
-                row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-                row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-                row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+                var actions = new StackPanel { VerticalAlignment = VerticalAlignment.Center };
+                var loadButton = new Button { Content = "Load", Background = new SolidColorBrush(Color.FromRgb(0x4C, 0x3A, 0x68)), Margin = new Thickness(0, 0, 0, 7) };
+                loadButton.Click += (s, e) => { _overlay.Settings.ApplyPreset(preset); SyncControlsToSettings(); };
+                var deleteButton = new Button { Content = "Delete", Background = new SolidColorBrush(Color.FromRgb(0x5A, 0x2A, 0x2A)) };
+                deleteButton.Click += (s, e) => { _presets.Remove(preset); SavePresets(); RefreshSavedList(); };
+                actions.Children.Add(loadButton);
+                actions.Children.Add(deleteButton);
 
-                var nameText = new TextBlock
-                {
-                    Text = preset.Name,
-                    Foreground = Brushes.White,
-                    VerticalAlignment = VerticalAlignment.Center
-                };
-                Grid.SetColumn(nameText, 0);
-
-                var loadButton = new Button
-                {
-                    Content = "Load",
-                    Margin = new Thickness(4, 0, 4, 0),
-                    Padding = new Thickness(8, 2, 8, 2),
-                    Background = new SolidColorBrush(Color.FromRgb(0x3A, 0x3A, 0x3A)),
-                    Foreground = Brushes.White,
-                    BorderThickness = new Thickness(0)
-                };
-                loadButton.Click += (s, e) =>
-                {
-                    _overlay.Settings.ApplyPreset(preset);
-                    SyncControlsToSettings();
-                    ShowPresetPreview(preset);
-                };
-                Grid.SetColumn(loadButton, 1);
-
-                var deleteButton = new Button
-                {
-                    Content = "Delete",
-                    Padding = new Thickness(8, 2, 8, 2),
-                    Background = new SolidColorBrush(Color.FromRgb(0x5A, 0x2A, 0x2A)),
-                    Foreground = Brushes.White,
-                    BorderThickness = new Thickness(0)
-                };
-                deleteButton.Click += (s, e) =>
-                {
-                    _presets.Remove(preset);
-                    SavePresets();
-                    RefreshSavedList();
-                };
-                Grid.SetColumn(deleteButton, 2);
-
-                row.Children.Add(nameText);
-                row.Children.Add(loadButton);
-                row.Children.Add(deleteButton);
-                row.MouseEnter += (s, e) => ShowPresetPreview(preset);
-                SavedListPanel.Children.Add(row);
+                SavedListPanel.Children.Add(CreatePresetCard(
+                    preset,
+                    "Saved on this PC",
+                    $"{preset.ColorHex} · {preset.ArmLength:0.#} px arms · {preset.Thickness:0.#} px thickness",
+                    actions));
             }
         }
 
@@ -381,43 +341,24 @@ namespace crosshair_y
 
             foreach (var preset in sorted)
             {
-                var row = new Grid { Margin = new Thickness(0, 0, 0, 10) };
-                row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-                row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-
-                var text = new StackPanel { VerticalAlignment = VerticalAlignment.Center };
-                text.Children.Add(new TextBlock { Text = preset.Name, Foreground = Brushes.White, FontWeight = FontWeights.SemiBold });
-                text.Children.Add(new TextBlock
-                {
-                    Text = string.IsNullOrWhiteSpace(preset.Description) ? $"By {preset.Author}" : $"By {preset.Author} · {preset.Description}",
-                    Foreground = new SolidColorBrush(Color.FromRgb(0xB5, 0xA4, 0xCA)), FontSize = 11, TextWrapping = TextWrapping.Wrap
-                });
-                text.Children.Add(new TextBlock
-                {
-                    Text = $"{preset.TotalDownloads:N0} downloads · {preset.WeeklyDownloads:N0} this week · Used {GetLocalUseCount(preset)}× on this PC",
-                    Foreground = new SolidColorBrush(Color.FromRgb(0x88, 0x88, 0x88)), FontSize = 10, Margin = new Thickness(0, 3, 0, 0)
-                });
-
-                var apply = new Button { Content = "Use", Padding = new Thickness(12, 5, 12, 5), Background = new SolidColorBrush(Color.FromRgb(0x4C, 0x3A, 0x68)) };
+                var actions = new StackPanel { VerticalAlignment = VerticalAlignment.Center };
+                var apply = new Button { Content = "Use", Padding = new Thickness(16, 7, 16, 7), Background = new SolidColorBrush(Color.FromRgb(0x4C, 0x3A, 0x68)) };
                 apply.Click += (s, e) =>
                 {
                     _overlay.Settings.ApplyPreset(preset);
                     _communityUses[GetCommunityKey(preset)] = GetLocalUseCount(preset) + 1;
                     SaveCommunityUses();
                     SyncControlsToSettings();
-                    ShowPresetPreview(preset);
                     CommunityStatusText.Text = $"Now using {preset.Name}.";
                     RefreshCommunityList();
                 };
-                Grid.SetColumn(apply, 1);
-                row.Children.Add(text);
-                row.Children.Add(apply);
-                row.MouseEnter += (s, e) => ShowPresetPreview(preset);
-                CommunityListPanel.Children.Add(row);
+                actions.Children.Add(apply);
+                CommunityListPanel.Children.Add(CreatePresetCard(
+                    preset,
+                    string.IsNullOrWhiteSpace(preset.Description) ? $"By {preset.Author}" : $"By {preset.Author} · {preset.Description}",
+                    $"{preset.TotalDownloads:N0} downloads · {preset.WeeklyDownloads:N0} this week · Used {GetLocalUseCount(preset)}× on this PC",
+                    actions));
             }
-
-            if (_browseLayoutExpanded && sorted.Count > 0)
-                ShowPresetPreview(sorted[0]);
         }
 
         private void SetBrowseLayoutExpanded(bool expanded)
@@ -433,36 +374,56 @@ namespace crosshair_y
                 EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
             });
 
-            if (expanded)
-            {
-                PreviewGapColumn.Width = new GridLength(12);
-                PreviewColumn.Width = new GridLength(248);
-                PresetPreviewPanel.Visibility = Visibility.Visible;
-                PresetPreviewPanel.Opacity = 0;
-                PresetPreviewPanel.BeginAnimation(OpacityProperty, new DoubleAnimation(0, 1, duration));
-            }
-            else
-            {
-                PresetPreviewPanel.BeginAnimation(OpacityProperty, null);
-                PresetPreviewPanel.Visibility = Visibility.Collapsed;
-                PreviewGapColumn.Width = new GridLength(0);
-                PreviewColumn.Width = new GridLength(0);
-            }
         }
 
-        private void ShowPresetPreview(CrosshairPreset preset)
+        private Border CreatePresetCard(CrosshairPreset preset, string subtitle, string details, UIElement actions)
         {
-            PreviewNameText.Text = preset.Name;
-            PreviewDetailsText.Text = preset is CommunityCrosshairPreset community
-                ? $"By {community.Author}\n{community.Description}\n\n{community.TotalDownloads:N0} downloads · {community.WeeklyDownloads:N0} this week"
-                : "Saved on this PC";
+            var card = new Border
+            {
+                Background = new SolidColorBrush(Color.FromRgb(0x33, 0x33, 0x3D)),
+                BorderBrush = new SolidColorBrush(Color.FromRgb(0x5B, 0x4A, 0x70)),
+                BorderThickness = new Thickness(1),
+                CornerRadius = new CornerRadius(8),
+                Padding = new Thickness(12),
+                Margin = new Thickness(0, 0, 0, 12)
+            };
+            var grid = new Grid();
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(138) });
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
 
-            CrosshairPreviewCanvas.Children.Clear();
-            const double center = 109;
+            var canvas = new Canvas { Width = 126, Height = 126, ClipToBounds = true };
+            DrawPresetPreview(canvas, preset);
+            var previewFrame = new Border
+            {
+                Width = 132, Height = 132, Background = new SolidColorBrush(Color.FromRgb(0x14, 0x14, 0x1A)),
+                BorderBrush = new SolidColorBrush(Color.FromRgb(0x70, 0x5A, 0x88)), BorderThickness = new Thickness(1),
+                CornerRadius = new CornerRadius(6), Child = canvas, HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Center
+            };
+
+            var text = new StackPanel { VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(8, 0, 12, 0) };
+            text.Children.Add(new TextBlock { Text = preset.Name, Foreground = Brushes.White, FontSize = 16, FontWeight = FontWeights.SemiBold, TextWrapping = TextWrapping.Wrap });
+            text.Children.Add(new TextBlock { Text = subtitle, Foreground = new SolidColorBrush(Color.FromRgb(0xC8, 0xA2, 0xFF)), FontSize = 11, Margin = new Thickness(0, 5, 0, 0), TextWrapping = TextWrapping.Wrap });
+            text.Children.Add(new TextBlock { Text = details, Foreground = new SolidColorBrush(Color.FromRgb(0xB5, 0xA4, 0xCA)), FontSize = 11, Margin = new Thickness(0, 4, 0, 0), TextWrapping = TextWrapping.Wrap });
+
+            Grid.SetColumn(text, 1);
+            Grid.SetColumn(actions, 2);
+            grid.Children.Add(previewFrame);
+            grid.Children.Add(text);
+            grid.Children.Add(actions);
+            card.Child = grid;
+            return card;
+        }
+
+        private static void DrawPresetPreview(Canvas previewCanvas, CrosshairPreset preset)
+        {
+            previewCanvas.Children.Clear();
+            double center = previewCanvas.Width / 2;
+
             double extent = Math.Max(preset.Gap + preset.ArmLength,
                 Math.Max(preset.ShowCircle ? preset.CircleRadius + preset.Thickness : 0,
                          preset.ShowDot ? preset.DotSize + 1 : 0));
-            double scale = Math.Clamp(82 / Math.Max(extent, 1), 0.8, 9);
+            double scale = Math.Clamp((previewCanvas.Width * 0.38) / Math.Max(extent, 1), 0.8, 9);
             double lineThickness = Math.Max(1, preset.Thickness * scale);
             var lineBrush = new SolidColorBrush(preset.Color) { Opacity = preset.Opacity };
             var outlineBrush = new SolidColorBrush(Colors.Black) { Opacity = preset.Opacity };
@@ -471,14 +432,14 @@ namespace crosshair_y
             {
                 if (preset.ShowOutline)
                 {
-                    CrosshairPreviewCanvas.Children.Add(new PreviewLine
+                    previewCanvas.Children.Add(new PreviewLine
                     {
                         X1 = x1, Y1 = y1, X2 = x2, Y2 = y2,
                         Stroke = outlineBrush, StrokeThickness = lineThickness + 3,
                         StrokeStartLineCap = PenLineCap.Square, StrokeEndLineCap = PenLineCap.Square
                     });
                 }
-                CrosshairPreviewCanvas.Children.Add(new PreviewLine
+                previewCanvas.Children.Add(new PreviewLine
                 {
                     X1 = x1, Y1 = y1, X2 = x2, Y2 = y2,
                     Stroke = lineBrush, StrokeThickness = lineThickness,
@@ -496,25 +457,27 @@ namespace crosshair_y
             if (preset.ShowCircle)
             {
                 double radius = preset.CircleRadius * scale;
+                var circleBrush = new SolidColorBrush(preset.Color) { Opacity = preset.Opacity * preset.CircleOpacity };
+                var circleOutlineBrush = new SolidColorBrush(Colors.Black) { Opacity = preset.Opacity * preset.CircleOpacity };
                 var circle = new PreviewEllipse
                 {
                     Width = radius * 2, Height = radius * 2,
-                    Stroke = lineBrush, StrokeThickness = lineThickness * 0.75
+                    Stroke = circleBrush, StrokeThickness = lineThickness * 0.75
                 };
                 if (preset.ShowOutline)
                 {
                     var outline = new PreviewEllipse
                     {
                         Width = circle.Width + 3, Height = circle.Height + 3,
-                        Stroke = outlineBrush, StrokeThickness = lineThickness * 0.75 + 3
+                        Stroke = circleOutlineBrush, StrokeThickness = lineThickness * 0.75 + 3
                     };
                     Canvas.SetLeft(outline, center - outline.Width / 2);
                     Canvas.SetTop(outline, center - outline.Height / 2);
-                    CrosshairPreviewCanvas.Children.Add(outline);
+                    previewCanvas.Children.Add(outline);
                 }
                 Canvas.SetLeft(circle, center - radius);
                 Canvas.SetTop(circle, center - radius);
-                CrosshairPreviewCanvas.Children.Add(circle);
+                previewCanvas.Children.Add(circle);
             }
 
             if (preset.ShowDot)
@@ -523,15 +486,16 @@ namespace crosshair_y
                 var dotBrush = new SolidColorBrush(preset.Color) { Opacity = preset.Opacity * preset.DotOpacity };
                 if (preset.ShowOutline)
                 {
-                    var outline = new PreviewEllipse { Width = radius * 2 + 4, Height = radius * 2 + 4, Fill = outlineBrush };
+                    var dotOutlineBrush = new SolidColorBrush(Colors.Black) { Opacity = preset.Opacity * preset.DotOpacity };
+                    var outline = new PreviewEllipse { Width = radius * 2 + 4, Height = radius * 2 + 4, Fill = dotOutlineBrush };
                     Canvas.SetLeft(outline, center - outline.Width / 2);
                     Canvas.SetTop(outline, center - outline.Height / 2);
-                    CrosshairPreviewCanvas.Children.Add(outline);
+                    previewCanvas.Children.Add(outline);
                 }
                 var dot = new PreviewEllipse { Width = radius * 2, Height = radius * 2, Fill = dotBrush };
                 Canvas.SetLeft(dot, center - radius);
                 Canvas.SetTop(dot, center - radius);
-                CrosshairPreviewCanvas.Children.Add(dot);
+                previewCanvas.Children.Add(dot);
             }
         }
 
