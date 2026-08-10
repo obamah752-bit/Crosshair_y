@@ -119,6 +119,31 @@
       "showBottom": true,
       "showLeft": true,
       "showRight": true
+    },
+    {
+      "author": "obamah752-bit",
+      "description": "Optional description",
+      "totalDownloads": 0,
+      "weeklyDownloads": 0,
+      "publishedAt": "2026-08-10T12:09:45.003Z",
+      "id": "99f957300f924d1fa8ed2f16c44fd6d4",
+      "name": "building",
+      "color": "#FFFFFFFF",
+      "armLength": 6,
+      "thickness": 2,
+      "gap": 1,
+      "showDot": false,
+      "dotSize": 2,
+      "dotOpacity": 1,
+      "showCircle": true,
+      "circleRadius": 6,
+      "circleOpacity": 1,
+      "showOutline": false,
+      "opacity": 1,
+      "showTop": false,
+      "showBottom": false,
+      "showLeft": false,
+      "showRight": false
     }
   ]
 }
